@@ -54,7 +54,7 @@ end
 
 --Stores as much of the compound as possible, returning the amount that wouldn't fit
 function StorageOrganelle:storeCompound(compoundId, amount)
-    local canFit = (self.capacity - self.stored)/CompoundRegistry.getCompoundSize(compoundId)
+    local canFit = (self.capacity - self.stored)/CompoundRegistry.getCompoundUnitVolume(compoundId)
     print("bandwidth remaining: " .. self.remainingBandwidth)
     local amountToStore = math.min(amount, self.remainingBandwidth, canFit)
     if self.compounds[compoundId] == nil then
@@ -62,13 +62,13 @@ function StorageOrganelle:storeCompound(compoundId, amount)
     else
         self.compounds[compoundId] = self.compounds[compoundId] + amountToStore
     end
-    self.stored = self.stored + CompoundRegistry.getCompoundSize(compoundId)*amountToStore
+    self.stored = self.stored + CompoundRegistry.getCompoundUnitVolume(compoundId)*amountToStore
     self.remainingBandwidth = self.remainingBandwidth - amountToStore
     return amount - amountToStore
 end
 
 --Ejects as much of the compound as possible, returning how much was ejected
-function StorageOrganelle:ejectCompound(compoundId, amount)
+function StorageOrganelle:takeCompound(compoundId, amount)
     if self.compounds[compoundId] ~= nil then
         local drainAmount = math.min(amount, self.compounds[compoundId], self.remainingBandwidth)
         self.compounds[compoundId] = self.compounds[compoundId] - drainAmount

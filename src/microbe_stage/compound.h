@@ -555,7 +555,7 @@ public:
     * - CompoundRegistry::registerCompoundType
     * - CompoundRegistry::getCompoundDisplayName
     * - CompoundRegistry::getCompoundInternalName
-    * - CompoundRegistry::getCompoundSize
+    * - CompoundRegistry::getCompoundUnitVolume
     * - CompoundRegistry::getCompoundId
     * - CompoundRegistry::getCompoundList
     * - CompoundRegistry::getCompoundMeshName
@@ -628,7 +628,7 @@ public:
     *   Compound size for internal use
     */
     static int
-    getCompoundSize(
+    getCompoundUnitVolume(
         CompoundId id
     );
 

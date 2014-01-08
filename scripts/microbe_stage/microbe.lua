@@ -325,7 +325,7 @@ end
 function Microbe:takeCompound(compoundId, maxAmount)
     local remainingAmount = maxAmount
     for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-        remainingAmount = remainingAmount - storageOrganelle:ejectCompound(compoundId, remainingAmount)
+        remainingAmount = remainingAmount - storageOrganelle:takeCompound(compoundId, remainingAmount)
         if remainingAmount <= 0.0 then
             break
         end

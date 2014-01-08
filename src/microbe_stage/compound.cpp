@@ -661,7 +661,7 @@ CompoundRegistry::luaBindings() {
             def("getCompoundDisplayName", &CompoundRegistry::getCompoundDisplayName),
             def("getCompoundInternalName", &CompoundRegistry::getCompoundInternalName),
 			def("getCompoundMeshName", &CompoundRegistry::getCompoundMeshName),
-            def("getCompoundSize", &CompoundRegistry::getCompoundSize),
+            def("getCompoundUnitVolume", &CompoundRegistry::getCompoundUnitVolume),
             def("getCompoundId", &CompoundRegistry::getCompoundId),
             def("getCompoundList", &CompoundRegistry::getCompoundList, return_stl_iterator)
         ]
@@ -733,7 +733,7 @@ CompoundRegistry::getCompoundInternalName(
 }
 
 int
-CompoundRegistry::getCompoundSize(
+CompoundRegistry::getCompoundUnitVolume(
     CompoundId id
 ) {
     if (static_cast<std::size_t>(id) > compoundRegistry().size())
