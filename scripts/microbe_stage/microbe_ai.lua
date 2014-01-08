@@ -26,8 +26,16 @@ function MicrobeAIControllerComponent:storage()
     storage:set("reevalutationInterval", self.reevalutationInterval)
     storage:set("intervalRemaining", self.intervalRemaining)
     storage:set("direction", self.direction)
-    storage:set("targetEmitterPosition", self.targetEmitterPosition)
-    storage:set("searchedCompoundId", self.searchedCompoundId)
+    if self.targetEmitterPosition == nil then
+        storage:set("targetEmitterPosition", "nil")
+    else
+        storage:set("targetEmitterPosition", self.targetEmitterPosition)
+    end
+    if self.searchedCompoundId == nil then
+        storage:set("searchedCompoundId", "nil")
+    else
+        storage:set("searchedCompoundId", self.searchedCompoundId)
+    end
     return storage
 end
 
@@ -38,7 +46,13 @@ function MicrobeAIControllerComponent:load(storage)
     self.intervalRemaining = storage:get("intervalRemaining", self.reevalutationInterval)
     self.direction = storage:get("direction", Vector3(0, 0, 0))
     self.targetEmitterPosition = storage:get("targetEmitterPosition", nil)
+    if self.targetEmitterPosition == "nil" then
+        self.targetEmitterPosition = nil
+    end
     self.searchedCompoundId = storage:get("searchedCompoundId", nil)
+    if self.searchedCompoundId == "nil" then
+        self.searchedCompoundId = nil
+    end
 end
 
 REGISTER_COMPONENT("MicrobeAIControllerComponent", MicrobeAIControllerComponent)

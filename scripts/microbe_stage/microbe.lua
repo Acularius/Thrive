@@ -278,7 +278,9 @@ function Microbe:storeCompound(compoundId, amount)
     print(" compound " .. compoundId .. " of amount: " .. amount)
     local remainingAmount = amount
     for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
+        print("asking organelle to store: " .. remainingAmount)
         remainingAmount = storageOrganelle:storeCompound(compoundId, remainingAmount)
+        print("could not store: " .. remainingAmount)
         if remainingAmount <= 0.0 then
             break
         end
