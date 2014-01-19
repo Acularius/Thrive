@@ -275,42 +275,47 @@ end
 -- The surplus that could not be stored because the microbe's storage organelles for
 -- this compound are full.
 function Microbe:storeCompound(compoundId, amount)
-    print(" compound " .. compoundId .. " of amount: " .. amount)
     local remainingAmount = amount
     for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-        print("asking organelle to store: " .. remainingAmount)
-        remainingAmount = storageOrganelle:storeCompound(compoundId, remainingAmount)
-        print("could not store: " .. remainingAmount)
+        remainingAmount = storageOrganelle:storeCompound(compoundId, remainingAmount, true)
         if remainingAmount <= 0.0 then
             break
         end
     end
-    print("remaining: " .. remainingAmount)
     self:_updateCompoundAbsorber()
     if remainingAmount > 0 then -- If there is excess compounds, we will eject them
-        local yAxis = self.sceneNode.transform.orientation:yAxis()
-
         local particleCount = 1
         if remainingAmount >= 3 then
             particleCount = 3
         end
         local i
         for i = 1, particleCount do
-            local angle = math.atan2(-yAxis.x, -yAxis.y)
-            if (angle < 0) then
-                angle = angle + 2*math.pi
-            end
-            angle = angle * 180/math.pi
-            local minAngle = angle - 30 -- over and underflow of angles are handled automatically
-            local maxAngle = angle + 30
-            self.compoundEmitter.minEmissionAngle = Degree(minAngle)
-            self.compoundEmitter.maxEmissionAngle = Degree(maxAngle)
-            self.compoundEmitter:emitCompound(compoundId, remainingAmount/particleCount)
+            self:ejectCompound(compoundId, remainingAmount/particleCount)
         end
     end
     return remainingAmount
 end
 
+-- Ejects compounds from the microbes behind position into the enviroment
+--
+-- @param compoundId
+-- The compound type to create and eject
+--
+-- @param amount
+-- The amount to eject
+function Microbe:ejectCompound(compoundId, amount)
+    local yAxis = self.sceneNode.transform.orientation:yAxis()
+    local angle = math.atan2(-yAxis.x, -yAxis.y)
+    if (angle < 0) then
+        angle = angle + 2*math.pi
+    end
+    angle = angle * 180/math.pi
+    local minAngle = angle - 30 -- over and underflow of angles are handled automatically
+    local maxAngle = angle + 30
+    self.compoundEmitter.minEmissionAngle = Degree(minAngle)
+    self.compoundEmitter.maxEmissionAngle = Degree(maxAngle)
+    self.compoundEmitter:emitCompound(compoundId, amount)
+end
 
 -- Removes an compound from the microbe's storage organelles
 --
@@ -347,7 +352,7 @@ function Microbe:update(milliseconds)
         end
     end
     
-    -- Distribute compounds to StorageOrganelles
+    -- Distribute compounds to Process Organelles
     self.residuePhysicsTime = self.residuePhysicsTime + milliseconds
     while self.residuePhysicsTime > COMPOUND_DISTRIBUTION_INTERVAL do -- For every COMPOUND_DISTRIBUTION_INTERVAL passed
         for compound in CompoundRegistry.getCompoundList() do -- Foreach compound type.
@@ -370,14 +375,38 @@ function Microbe:update(milliseconds)
     for _, organelle in pairs(self.microbe.organelles) do
         organelle:update(self, milliseconds)
     end
-    
-    local amountStored = 0
+    -- Gather excess compounds that are the compounds that the storage organelles automatically emit to stay less than full
+    local excessCompounds = {}
     for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-        amountStored = amountStored + storageOrganelle.stored
+        -- TEMPORARY Priority table solution
+        local priorityTable = {}
+        priorityTable[CompoundRegistry.getCompoundId("glucose")] = 5
+        priorityTable[CompoundRegistry.getCompoundId("oxygen")] = 0
+        priorityTable[CompoundRegistry.getCompoundId("atp")] = 10
+        local localExcessCompounds = storageOrganelle:gatherExcessCompounds(priorityTable)
+        for compoundId, amount in ipairs(localExcessCompounds) do
+            excessCompounds[compoundId] = excessCompounds[compoundId] + amount
+        end
     end
-    
-    self.stored = amountStored
-    
+    -- Redistribute excess compounds as much as possible
+    for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
+        for compoundId, amount in ipairs(excessCompounds) do
+            local takenAmount = storageOrganelle:storeCompound(compoundId, amount, false) -- May be unreasonably limited by/clogging up the organelles bandwidth?
+            excessCompounds[compoundId] = excessCompounds[compoundId] - takenAmount
+            if excessCompounds[compoundId] == 0 then -- Note, modifying existing keys in looped table (should be safe)
+                excessCompounds[compoundId] = nil
+            end
+        end
+    end
+    -- Eject any compounds that could not be absorbed without going over storage threshhold
+    for compoundId, amount in ipairs(excessCompounds) do
+        self:ejectCompound(compoundId, amount)
+    end    
+    -- Update sum of stored compounds
+    self.stored = 0
+    for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
+        self.stored = self.stored + storageOrganelle.stored
+    end    
 end
 
 
