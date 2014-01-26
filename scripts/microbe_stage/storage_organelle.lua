@@ -55,23 +55,30 @@ function StorageOrganelle:onRemovedFromMicrobe(microbe, q, r)
 end
 
 --Stores as much of the compound as possible, returning the amount that wouldn't fit
-function StorageOrganelle:storeCompound(compoundId, amount, mayFill)
-    local canFit = self.capacity - self.stored -- default to max full
+function StorageOrganelle:storeCompound(compoundId, amount, mayFill, bandwidthLimited)
+    local canFit = self.capacity - self.stored -- default capacity is max full
     if mayFill == false then
+         
         canFit = self.capacity * STORAGE_EJECTION_THRESHHOLD - self.stored
+        print("may not fill.. Canfit: " .. canFit .. " adjustted capacity:   " .. self.capacity * STORAGE_EJECTION_THRESHHOLD  .. " stored: " .. self.stored)
         if canFit <= 0 then
             return amount -- Nothing could be stored without going above threshhold
         end
     end
     local canFitCompound = canFit/CompoundRegistry.getCompoundUnitVolume(compoundId)
-    local amountToStore = math.min(amount, self.remainingBandwidth, canFitCompound)
+    local amountToStore
+    if bandwidthLimited then
+        amountToStore = math.min(amount, self.remainingBandwidth, canFitCompound)
+         self.remainingBandwidth = self.remainingBandwidth - amountToStore
+    else
+        amountToStore = math.min(amount, canFitCompound)
+    end
     if self.compounds[compoundId] == nil then
         self.compounds[compoundId] = amountToStore
     else
         self.compounds[compoundId] = self.compounds[compoundId] + amountToStore
     end
-    self.stored = self.stored + CompoundRegistry.getCompoundUnitVolume(compoundId)*amountToStore
-    self.remainingBandwidth = self.remainingBandwidth - amountToStore
+    self.stored = self.stored + amountToStore*CompoundRegistry.getCompoundUnitVolume(compoundId)
     return amount - amountToStore
 end
 
@@ -80,7 +87,9 @@ function StorageOrganelle:takeCompound(compoundId, amount)
     if self.compounds[compoundId] ~= nil then
         local drainAmount = math.min(amount, self.compounds[compoundId], self.remainingBandwidth)
         self.compounds[compoundId] = self.compounds[compoundId] - drainAmount
+     --   print("Was storing " .. self.stored)
         self.stored = self.stored - drainAmount
+     --   print("Now drained " .. drainAmount .. " of compound " .. CompoundRegistry.getCompoundDisplayName(compoundId) .. " and storage is now " .. self.stored)
         self.remainingBandwidth = self.remainingBandwidth - drainAmount
         return drainAmount
     else
@@ -95,32 +104,52 @@ end
 --
 -- @return excessCompounds
 function StorageOrganelle:gatherExcessCompounds(compoundPriorityTable)
-
     local excessCompounds = {}
-
+   -- print(self.stored)
+  
     while self.stored/self.capacity > STORAGE_EJECTION_THRESHHOLD do
+        print(self.stored)
+     --   print("Over threshhold, looking for compound to expell")
         -- Find lowest priority compound type and eject that
         local lowestPriorityId = nil
-        local lowestPriority = math.inf
-        for compoundId,_ in ipairs(self.compounds) do
-            if compoundPriorityTable[compoundId] ~= nil and compoundPriorityTable[compoundId] < lowestPriority then
+        local lowestPriority = math.huge
+       -- for compoundId,_ in ipairs(self.compounds) do -- This should work but for some reason does not iterate over Glucose (and possibly others)
+        for compoundId in CompoundRegistry.getCompoundList() do    
+     --       print("Checking compound " .. CompoundRegistry.getCompoundDisplayName(compoundId))
+            if self.compounds[compoundId] ~= nil and self.compounds[compoundId] > 0  and compoundPriorityTable[compoundId] ~= nil and compoundPriorityTable[compoundId] < lowestPriority then
                 lowestPriority = compoundPriorityTable[compoundId]
                 lowestPriorityId = compoundId
             end
         end
-        -- Return an amount that either is how much the organelle contains of the compound or until it goes to the threshhold
-        local amountInExcess = math.min(self.compounds[lowestPriorityId],self.capacity * STORAGE_EJECTION_THRESHHOLD - self.stored)
-        excessCompounds[lowestPriorityId] = amountInExcess
-        self.stored = self.stored - amountInExcess
-        if self.compounds[lowestPriorityId] ~= amountInExcess then -- If we didn't absorb all the compounds with id lowestPriorityId
-           self.compounds[lowestPrioirtyId] = nil
-           break
+        
+        if lowestPriorityId ~= nil then -- If there actually was a valid compound type to be found
+        --    print("Found lowest compound to be: " .. CompoundRegistry.getCompoundDisplayName(lowestPriorityId))
+            -- Return an amount that either is how much the organelle contains of the compound or until it goes to the threshhold
+            local amountInExcess
+            if self.compounds[lowestPriorityId] ~= nil then
+                amountInExcess = math.min(self.compounds[lowestPriorityId],self.stored - self.capacity * STORAGE_EJECTION_THRESHHOLD)
+            else
+                amountInExcess = 0
+            end
+       --     print("excess " .. amountInExcess)
+            excessCompounds[lowestPriorityId] = amountInExcess
+       --     print("Was storing " .. self.stored)
+            self.stored = self.stored - amountInExcess*CompoundRegistry.getCompoundUnitVolume(lowestPriorityId)
+            print("Now expelled " .. amountInExcess .. " of compound " .. CompoundRegistry.getCompoundDisplayName(lowestPriorityId) .. " and storage is now " .. self.stored)
+            self.compounds[lowestPriorityId] = self.compounds[lowestPriorityId] - amountInExcess
+            
+        else
+            break
         end
     end
-    for compoundId,_ in ipairs(self.compounds) do
-        if compoundPriorityTable[compoundId] ~= nil and compoundPriorityTable[compoundId] == 0 then
+    -- Expell compounds of priority 0 periodically
+    -- for compoundId,_ in ipairs(self.compounds) do -- Should work but doesnt
+    for compoundId in CompoundRegistry.getCompoundList() do    
+        if self.compounds[compoundId] ~= nil and compoundPriorityTable[compoundId] ~= nil and compoundPriorityTable[compoundId] == 0 then
             local uselessCompoundAmount = math.min(self.compounds[compoundId], self.remainingBandwidth)
             self.remainingBandwidth = self.remainingBandwidth - uselessCompoundAmount
+            self.stored = self.stored - uselessCompoundAmount
+            self.compounds[compoundId] = self.compounds[compoundId] - uselessCompoundAmount
             if excessCompounds[compoundId] ~= nil then
                 excessCompounds[compoundId] = excessCompounds[compoundId] + uselessCompoundAmount
             else
@@ -128,7 +157,6 @@ function StorageOrganelle:gatherExcessCompounds(compoundPriorityTable)
             end
         end
     end
-    
     return excessCompounds
        -- Remember
 

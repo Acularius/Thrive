@@ -96,8 +96,14 @@ end
 -- @returns wantsCompound
 -- true if the compound wants the compound, false if it can't use or doesn't want the compound
 function ProcessOrganelle:wantsInputCompound(compoundId)
+if self.inputCompounds[compoundId] ~= nil and
+            self.buffers[compoundId]/self.inputCompounds[compoundId] < (self.processCooldown - self.remainingCooldown)/self.processCooldown then
+          --self.remainingCooldown / (self.inputCompounds[compoundId] - self.buffers[compoundId]) < (self.processCooldown / self.inputCompounds[compoundId])) then
+    print("process data: RCD " .. self.remainingCooldown .. " buffered " .. self.buffers[compoundId] .. " CD " .. self.processCooldown .. " totalwanted " .. self.inputCompounds[compoundId])  
+    end
     return (self.inputCompounds[compoundId] ~= nil and
-          self.remainingCooldown / (self.inputCompounds[compoundId] - self.buffers[compoundId]) < (self.processCooldown / self.inputCompounds[compoundId])) -- calculate if it has enough buffered relative the amount of time left.
+          self.buffers[compoundId]/self.inputCompounds[compoundId] < (self.processCooldown - self.remainingCooldown)/self.processCooldown)
+         -- self.remainingCooldown / (self.inputCompounds[compoundId] - self.buffers[compoundId]) < (self.processCooldown / self.inputCompounds[compoundId])) -- calculate if it has enough buffered relative the amount of time left.
 end
 
 
@@ -131,7 +137,8 @@ function ProcessOrganelle:update(microbe, milliseconds)
         self._needsColourUpdate = true -- Update colours for displaying completeness of organelle production
         self:updateColourDynamic()
         for compoundId,amount in pairs(self.outputCompounds) do
-            microbe:storeCompound(compoundId, amount)
+            print("Storepoint 1. Producing compound: " .. CompoundRegistry.getCompoundDisplayName(compoundId))
+            microbe:storeCompound(compoundId, amount, false)
         end
     end
 end

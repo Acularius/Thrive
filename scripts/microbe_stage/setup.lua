@@ -38,7 +38,7 @@ local function setupCompounds()
     CompoundRegistry.registerCompoundType("nitrate", "Nitrate", "molecule.mesh", 1)
     CompoundRegistry.registerCompoundType("glucose", "Glucose", "molecule.mesh", 1)
     CompoundRegistry.registerCompoundType("co2", "CO2", "molecule.mesh", 1)
-    CompoundRegistry.registerCompoundType("oxytoxy", "OxyToxy NT", "molecule.mesh", 1)
+    --CompoundRegistry.registerCompoundType("oxytoxy", "OxyToxy NT", "molecule.mesh", 1)
 end
 
 local function createSpawnSystem()
@@ -150,7 +150,7 @@ local function createSpawnSystem()
             Vector3(0.0, -50.0, 0.0),
             300
         )
-        backwardOrganelle:addHex(0, 0)
+        backwardOrganelle:addHex(0, 0) 
         backwardOrganelle:addHex(-1, 1)
         backwardOrganelle:addHex(1, 0)
         backwardOrganelle:setColour(ColourValue(0, 0.7, 0.7, 1))
@@ -160,7 +160,7 @@ local function createSpawnSystem()
         storageOrganelle:addHex(0, 0)
         storageOrganelle:setColour(ColourValue(0, 1, 0, 1))
         microbe:addOrganelle(0, 0, storageOrganelle)
-        microbe:storeCompound(CompoundRegistry.getCompoundId("atp"), 40)
+        microbe:storeCompound(CompoundRegistry.getCompoundId("atp"), 40, false)
         -- Storage compound 2
         local storageOrganelle2 = StorageOrganelle(10, 5.0)
         storageOrganelle2:addHex(0, 0)
@@ -188,7 +188,7 @@ local function createSpawnSystem()
     -- (square dekaunit?)
     spawnSystem:addSpawnType(testFunction, 1/20^2, 30)
     spawnSystem:addSpawnType(testFunction2, 1/20^2, 30)
-    spawnSystem:addSpawnType(microbeSpawnFunction, 1/100^2, 40)
+    --spawnSystem:addSpawnType(microbeSpawnFunction, 1/100^2, 40)
     return spawnSystem
 end
 
@@ -298,22 +298,22 @@ local function setupPlayer()
     backwardOrganelle:addHex(1, 0)
     backwardOrganelle:setColour(ColourValue(1, 0, 0, 1))
     player:addOrganelle(0, -2, backwardOrganelle)
-    -- Storage energy
-    local storageOrganelle = StorageOrganelle(10, 100.0)
+    -- Storage organelle 1
+    local storageOrganelle = StorageOrganelle(2, 200.0)
     storageOrganelle:addHex(0, 0)
     storageOrganelle:setColour(ColourValue(0, 1, 0, 1))
     player:addOrganelle(0, 0, storageOrganelle)
-    -- Storage compound 2
-    local storageOrganelle2 = StorageOrganelle(10, 100.0)
-    storageOrganelle2:addHex(0, 0)
-    storageOrganelle2:setColour(ColourValue(0, 1, 0.5, 1))
-    player:addOrganelle(0, -1, storageOrganelle2)
-    -- Storage compound 3
-    local storageOrganelle3 = StorageOrganelle(10, 100.0)
-    storageOrganelle3:addHex(0, 0)
-    storageOrganelle3:setColour(ColourValue(0.5, 1, 0, 1))
-    player:addOrganelle(-1, 0, storageOrganelle3)
-	player:storeCompound(CompoundRegistry.getCompoundId("atp"), 20)
+    -- Storage organelle 2
+  --  local storageOrganelle2 = StorageOrganelle(2, 33.0)
+ --   storageOrganelle2:addHex(0, 0)
+ ----   storageOrganelle2:setColour(ColourValue(0, 1, 0, 1))
+ --   player:addOrganelle(0, -1, storageOrganelle2)
+    -- Storage organelle 3
+ --   local storageOrganelle3 = StorageOrganelle(2, 34.0)
+ --   storageOrganelle3:addHex(0, 0)
+  --  storageOrganelle3:setColour(ColourValue(0, 1, 0, 1))
+    --player:addOrganelle(-1, 0, storageOrganelle3)
+	player:storeCompound(CompoundRegistry.getCompoundId("atp"), 20, false)
     -- Producer making atp from oxygen and glucose
     local processOrganelle1 = ProcessOrganelle(20000) -- 20 second minimum time between producing oxytoxy
     processOrganelle1:addRecipyInput(CompoundRegistry.getCompoundId("glucose"), 1)
