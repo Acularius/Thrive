@@ -99,7 +99,6 @@ function ProcessOrganelle:wantsInputCompound(compoundId)
 if self.inputCompounds[compoundId] ~= nil and
             self.buffers[compoundId]/self.inputCompounds[compoundId] < (self.processCooldown - self.remainingCooldown)/self.processCooldown then
           --self.remainingCooldown / (self.inputCompounds[compoundId] - self.buffers[compoundId]) < (self.processCooldown / self.inputCompounds[compoundId])) then
-    print("process data: RCD " .. self.remainingCooldown .. " buffered " .. self.buffers[compoundId] .. " CD " .. self.processCooldown .. " totalwanted " .. self.inputCompounds[compoundId])  
     end
     return (self.inputCompounds[compoundId] ~= nil and
           self.buffers[compoundId]/self.inputCompounds[compoundId] < (self.processCooldown - self.remainingCooldown)/self.processCooldown)
@@ -137,7 +136,6 @@ function ProcessOrganelle:update(microbe, milliseconds)
         self._needsColourUpdate = true -- Update colours for displaying completeness of organelle production
         self:updateColourDynamic()
         for compoundId,amount in pairs(self.outputCompounds) do
-            print("Storepoint 1. Producing compound: " .. CompoundRegistry.getCompoundDisplayName(compoundId))
             microbe:storeCompound(compoundId, amount, false)
         end
     end

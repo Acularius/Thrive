@@ -6,7 +6,16 @@
 --------------------------------------------------------------------------------
 class 'MicrobeComponent' (Component)
 
-COMPOUND_DISTRIBUTION_INTERVAL = 100 -- quantity of physics time between each loop distributing compounds to organelles. TODO: Modify to reflect microbe size.
+COMPOUND_PROCESS_DISTRIBUTION_INTERVAL = 100 -- quantity of physics time between each loop distributing compounds to organelles. TODO: Modify to reflect microbe size.
+
+BANDWIDTH_PER_ORGANELLE = 1 -- amount the microbes maxmimum bandwidth increases with per organelle added. This is a temporary replacement for microbe surface area
+
+BANDWIDTH_REFILL_DURATION = 1000 -- The amount of time it takes for the microbe to regenerate an amount of bandwidth equal to maxBandwidth
+
+
+
+EXCESS_COMPOUND_COLLECTION_INTERVAL = 1000 -- The amount of time between each loop to maintaining a fill level below STORAGE_EJECTION_THRESHHOLD and eject useless compounds
+
 
 function MicrobeComponent:__init()
     Component.__init(self)
@@ -18,6 +27,9 @@ function MicrobeComponent:__init()
     self.capacity = 0
     self.stored = 0
     self.initialized = false
+    self.maxBandwidth = 0
+    self.remainingBandwidth = 0
+    self.compoundCollectionTimer = EXCESS_COMPOUND_COLLECTION_INTERVAL
 end
 
 
@@ -125,7 +137,7 @@ Microbe.COMPONENTS = {
 -- The entity this microbe wraps
 function Microbe:__init(entity)
     self.entity = entity
-    self.residuePhysicsTime = 0
+    self.gatheredDistributionTime = 0
     for key, typeId in pairs(Microbe.COMPONENTS) do
         local component = entity:getComponent(typeId)
         assert(component ~= nil, "Can't create microbe from this entity, it's missing " .. key)
@@ -170,11 +182,15 @@ function Microbe:addOrganelle(q, r, organelle)
     organelle.sceneNode.transform:touch()
     organelle:onAddedToMicrobe(self, q, r)
     self:_updateAllHexColours()
+    self.microbe.maxBandwidth = self.microbe.maxBandwidth + BANDWIDTH_PER_ORGANELLE -- Temporary solution for increasing max bandwidth
+    self.microbe.remainingBandwidth = self.microbe.maxBandwidth
     return true
 end
 
 
 -- Adds a storage organelle
+-- This will be called automatically by storage organelles added with addOrganelle(...)
+--
 -- @param organelle
 --   An object of type StorageOrganelle
 function Microbe:addStorageOrganelle(storageOrganelle)
@@ -185,6 +201,7 @@ function Microbe:addStorageOrganelle(storageOrganelle)
 end
 
 -- Removes a storage organelle
+--
 -- @param organelle
 --   An object of type StorageOrganelle
 function Microbe:removeStorageOrganelle(storageOrganelle)
@@ -193,9 +210,10 @@ function Microbe:removeStorageOrganelle(storageOrganelle)
 end
 
 -- Adds a process organelle
+-- This will be called automatically by process organelles added with addOrganelle(...)
 --
 -- @param processOrganelle
--- An object of type ProcessOrganelle
+--   An object of type ProcessOrganelle
 function Microbe:addProcessOrganelle(processOrganelle)
     table.insert(self.microbe.processOrganelles, processOrganelle)
 end
@@ -257,6 +275,8 @@ function Microbe:removeOrganelle(q, r)
     organelle.position.r = 0
     organelle:onRemovedFromMicrobe(self)
     self:_updateAllHexColours()
+    self.microbe.maxBandwidth = self.maxBandwidth - BANDWIDTH_PER_ORGANELLE -- Temporary solution for decreasing max bandwidth
+    self.microbe.remainingBandwidth = self.maxBandwidth
     return true
 end
 
@@ -269,13 +289,19 @@ end
 -- @param amount
 -- The amount to store
 --
--- @returns remainingAmount
--- The surplus that could not be stored because the microbe's storage organelles for
--- this compound are full.
+-- @param bandwidthLimited
+-- Determines if the storage operation is to be limited by the bandwidth of the microbe
 function Microbe:storeCompound(compoundId, amount, bandwidthLimited)
     local remainingAmount = amount
     for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-        remainingAmount = storageOrganelle:storeCompound(compoundId, remainingAmount, true, bandwidthLimited)
+        if bandwidthLimited then
+            local storedAmount = storageOrganelle:storeCompound(compoundId, math.min(remainingAmount, self.microbe.remainingBandwidth), true)
+            remainingAmount = remainingAmount - storedAmount
+            self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - storedAmount
+        else
+            local storedAmount = storageOrganelle:storeCompound(compoundId, remainingAmount, true)
+            remainingAmount = remainingAmount - storedAmount
+        end
         if remainingAmount <= 0.0 then
             break
         end
@@ -291,7 +317,6 @@ function Microbe:storeCompound(compoundId, amount, bandwidthLimited)
             self:ejectCompound(compoundId, remainingAmount/particleCount)
         end
     end
-    return remainingAmount
 end
 
 -- Ejects compounds from the microbes behind position into the enviroment
@@ -341,7 +366,10 @@ end
 -- Updates the microbe's state
 function Microbe:update(milliseconds)
     -- StorageOrganelles
-    
+   
+    -- Regenerate bandwidth
+    self.microbe.remainingBandwidth = math.min(self.microbe.remainingBandwidth + milliseconds * self.microbe.maxBandwidth / BANDWIDTH_REFILL_DURATION, self.microbe.maxBandwidth)
+    -- Attempt to absorb queued compounds
     for compound in CompoundRegistry.getCompoundList() do
         -- Check for compounds to store
         local amount = self.compoundAbsorber:absorbedCompoundAmount(compound)
@@ -351,88 +379,85 @@ function Microbe:update(milliseconds)
     end
     
     -- Distribute compounds to Process Organelles
-    self.residuePhysicsTime = self.residuePhysicsTime + milliseconds
-    while self.residuePhysicsTime > COMPOUND_DISTRIBUTION_INTERVAL do -- For every COMPOUND_DISTRIBUTION_INTERVAL passed
+    self.gatheredDistributionTime = self.gatheredDistributionTime + milliseconds
+    while self.gatheredDistributionTime > COMPOUND_PROCESS_DISTRIBUTION_INTERVAL do -- For every COMPOUND_DISTRIBUTION_INTERVAL passed
         for compound in CompoundRegistry.getCompoundList() do -- Foreach compound type.
             if self:getCompoundAmount(compound) > 0 then -- If microbe contains the compound
                 local candidateIndices = {} -- Indices of organelles that want the compound
                 for i, processOrg in ipairs(self.microbe.processOrganelles) do
                     if processOrg:wantsInputCompound(compound) then
-                        print("Organelle wants it")
                         table.insert(candidateIndices, i) -- Organelle has determined that it is interrested in obtaining the compound
                     end
                 end
                 if #candidateIndices > 0 then -- If there were any candidates, pick a random winner.
                     local chosenProcessOrg = self.microbe.processOrganelles[candidateIndices[rng:getInt(1,#candidateIndices)]]
-                    print("GRANTING")
                     chosenProcessOrg:storeCompound(compound, self:takeCompound(compound, 1))
                 end
             end
         end
-        self.residuePhysicsTime = self.residuePhysicsTime - COMPOUND_DISTRIBUTION_INTERVAL
+        self.gatheredDistributionTime = self.gatheredDistributionTime - COMPOUND_PROCESS_DISTRIBUTION_INTERVAL
+    end
     
-    
-     local priorityTable = {}
+    self.microbe.compoundCollectionTimer = self.microbe.compoundCollectionTimer + milliseconds
+    while self.microbe.compoundCollectionTimer > EXCESS_COMPOUND_COLLECTION_INTERVAL do -- For every COMPOUND_DISTRIBUTION_INTERVAL passed
+        -- Temporary solution for priorities, should be replaced with a dynamic system (important once more process organelles are added)
+        local priorityTable = {}
         priorityTable[CompoundRegistry.getCompoundId("glucose")] = 5
         priorityTable[CompoundRegistry.getCompoundId("co2")] = 0
         priorityTable[CompoundRegistry.getCompoundId("oxygen")] = 6
         priorityTable[CompoundRegistry.getCompoundId("atp")] = 10
-    -- Gather excess compounds that are the compounds that the storage organelles automatically emit to stay less than full
-    local excessCompounds = {}
-    for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-        -- TEMPORARY Priority table solution
-       
-        local localExcessCompounds = storageOrganelle:gatherExcessCompounds(priorityTable)
-        --for compoundId, amount in ipairs(localExcessCompounds) do -- Should work but  does not. In some cases excessCompounds will be non-empty but loop will not run
-        for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
-            if localExcessCompounds[compoundId] ~= nil and localExcessCompounds[compoundId] > 0 then
-                 print("Confirming ejection of " .. localExcessCompounds[compoundId] .. " " .. CompoundRegistry.getCompoundDisplayName(compoundId))
-                if excessCompounds[compoundId] ~= nil then
-                    excessCompounds[compoundId] = excessCompounds[compoundId] + localExcessCompounds[compoundId]
-                else
-                    excessCompounds[compoundId] = localExcessCompounds[compoundId]
-                end
-            end
-        end
-    end
-    
-  --  if next(excessCompounds) ~= nil then -- If we gathered any excess compounds DOESNT WORK BUT SHOULD
-
-        -- Redistribute excess compounds as much as possible
-        for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-         --   print("Asking an organelle to accept excess")
-            -- for compoundId, amount in ipairs(excessCompounds) do -- Again.. should work but doesnt
+        -- Gather excess compounds that are the compounds that the storage organelles automatically emit to stay less than full
+        local excessCompounds = {}
+        for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do       
+            local localExcessCompounds = storageOrganelle:gatherExcessCompounds(priorityTable, self.microbe.remainingBandwidth)
+            --for compoundId, amount in ipairs(localExcessCompounds) do -- Should work but  does not. In some cases excessCompounds will be non-empty but loop will not run
             for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
-                if excessCompounds[compoundId] ~= nil and excessCompounds[compoundId] > 0  and priorityTable[compoundId] > 0 then -- We dont want to redistribute useless compounds
-                    local unabsorbedAmount = storageOrganelle:storeCompound(compoundId, excessCompounds[compoundId], false, false)
-                    print("Organelle accepted " .. (excessCompounds[compoundId] - unabsorbedAmount) .. " of compound " .. CompoundRegistry.getCompoundDisplayName(compoundId))
-                    excessCompounds[compoundId] = unabsorbedAmount
-                    if excessCompounds[compoundId] == 0 then -- Note, modifying existing keys in iterating table (should be safe)
-                        excessCompounds[compoundId] = nil
+                if localExcessCompounds[compoundId] ~= nil and localExcessCompounds[compoundId] > 0 then
+                    if excessCompounds[compoundId] ~= nil then
+                        excessCompounds[compoundId] = excessCompounds[compoundId] + localExcessCompounds[compoundId]
+                        self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - localExcessCompounds[compoundId]
+                    else
+                        excessCompounds[compoundId] = localExcessCompounds[compoundId]
+                        self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - localExcessCompounds[compoundId]
                     end
                 end
             end
         end
-        -- Eject any compounds that could not be absorbed without going over storage threshhold
-      --  for compoundId, amount in ipairs(excessCompounds) do -- Should work but doesnt
-        for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
-            if excessCompounds[compoundId] ~= nil and excessCompounds[compoundId] > 0 then
-                print("EJECTING -----------------------------------")
-                self:ejectCompound(compoundId, excessCompounds[compoundId])
+       
+      -- Redistribute excess compounds as much as possible, extraction has already been limited by bandwidth so probably no need to do it here aswell  
+      --if next(excessCompounds) ~= nil then -- If we gathered any excess compounds, DOESNT ALWAYS WORK BUT SHOULD
+
+            for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
+                -- for compoundId, amount in ipairs(excessCompounds) do -- Again.. should work but doesnt
+                for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
+                    if excessCompounds[compoundId] ~= nil and excessCompounds[compoundId] > 0  and priorityTable[compoundId] > 0 then -- We dont want to redistribute useless compounds
+                        local storeval = storageOrganelle:storeCompound(compoundId, excessCompounds[compoundId], false)
+                        excessCompounds[compoundId] = excessCompounds[compoundId] - storeval
+                        if excessCompounds[compoundId] == 0 then -- Note, modifying existing keys in iterating table (should be safe)
+                            excessCompounds[compoundId] = nil
+                        end
+                    end
+                end
             end
-        end    
-        -- Update sum of stored compounds
-        self.stored = 0
-        for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-            self.stored = self.stored + storageOrganelle.stored
-        end    
-   -- end
+            -- Eject any compounds that could not be absorbed without going over storage threshhold
+        --  for compoundId, amount in ipairs(excessCompounds) do -- Should work but doesnt
+            for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
+                if excessCompounds[compoundId] ~= nil and excessCompounds[compoundId] > 0 then
+                    self:ejectCompound(compoundId, excessCompounds[compoundId])
+                end
+            end    
+            -- Update sum of stored compounds
+            self.stored = 0
+            for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
+                self.stored = self.stored + storageOrganelle.stored
+            end    
+    --  end
+         self.microbe.compoundCollectionTimer = self.microbe.compoundCollectionTimer - EXCESS_COMPOUND_COLLECTION_INTERVAL
     end
     -- Other organelles
     for _, organelle in pairs(self.microbe.organelles) do
         organelle:update(self, milliseconds)
     end
-   
 end
 
 
