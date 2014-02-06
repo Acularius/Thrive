@@ -410,15 +410,14 @@ function Microbe:update(milliseconds)
         local excessCompounds = {}
         for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do       
             local localExcessCompounds = storageOrganelle:gatherExcessCompounds(priorityTable, self.microbe.remainingBandwidth)
-            --for compoundId, amount in ipairs(localExcessCompounds) do -- Should work but  does not. In some cases excessCompounds will be non-empty but loop will not run
-            for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
-                if localExcessCompounds[compoundId] ~= nil and localExcessCompounds[compoundId] > 0 then
+            for compoundId, amount in pairs(localExcessCompounds) do
+                if amount > 0 then
                     if excessCompounds[compoundId] ~= nil then
-                        excessCompounds[compoundId] = excessCompounds[compoundId] + localExcessCompounds[compoundId]
-                        self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - localExcessCompounds[compoundId]
+                        excessCompounds[compoundId] = excessCompounds[compoundId] + amount
+                        self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - amount
                     else
                         excessCompounds[compoundId] = localExcessCompounds[compoundId]
-                        self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - localExcessCompounds[compoundId]
+                        self.microbe.remainingBandwidth = self.microbe.remainingBandwidth - amount
                     end
                 end
             end
@@ -428,22 +427,20 @@ function Microbe:update(milliseconds)
       --if next(excessCompounds) ~= nil then -- If we gathered any excess compounds, DOESNT ALWAYS WORK BUT SHOULD
 
             for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
-                -- for compoundId, amount in ipairs(excessCompounds) do -- Again.. should work but doesnt
-                for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
-                    if excessCompounds[compoundId] ~= nil and excessCompounds[compoundId] > 0  and priorityTable[compoundId] > 0 then -- We dont want to redistribute useless compounds
-                        local storeval = storageOrganelle:storeCompound(compoundId, excessCompounds[compoundId], false)
-                        excessCompounds[compoundId] = excessCompounds[compoundId] - storeval
-                        if excessCompounds[compoundId] == 0 then -- Note, modifying existing keys in iterating table (should be safe)
+                for compoundId, amount in pairs(excessCompounds) do
+                    if amount > 0  and priorityTable[compoundId] > 0 then -- We dont want to redistribute useless compounds
+                        local storeval = storageOrganelle:storeCompound(compoundId, amount, false)
+                        excessCompounds[compoundId] = amount - storeval
+                        if amount == 0 then -- Note, modifying existing keys in iterating table (should be safe)
                             excessCompounds[compoundId] = nil
                         end
                     end
                 end
             end
             -- Eject any compounds that could not be absorbed without going over storage threshhold
-        --  for compoundId, amount in ipairs(excessCompounds) do -- Should work but doesnt
-            for compoundId in CompoundRegistry.getCompoundList() do --replacement for above
-                if excessCompounds[compoundId] ~= nil and excessCompounds[compoundId] > 0 then
-                    self:ejectCompound(compoundId, excessCompounds[compoundId])
+            for compoundId, amount in pairs(excessCompounds) do
+                if amount > 0 then
+                    self:ejectCompound(compoundId, amount)
                 end
             end    
             -- Update sum of stored compounds
