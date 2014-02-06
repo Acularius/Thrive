@@ -422,10 +422,8 @@ function Microbe:update(milliseconds)
                 end
             end
         end
-       
       -- Redistribute excess compounds as much as possible, extraction has already been limited by bandwidth so probably no need to do it here aswell  
-      --if next(excessCompounds) ~= nil then -- If we gathered any excess compounds, DOESNT ALWAYS WORK BUT SHOULD
-
+        if next(excessCompounds) ~= nil then -- If we gathered any excess compounds, DOESNT ALWAYS WORK BUT SHOULD
             for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
                 for compoundId, amount in pairs(excessCompounds) do
                     if amount > 0  and priorityTable[compoundId] > 0 then -- We dont want to redistribute useless compounds
@@ -448,8 +446,8 @@ function Microbe:update(milliseconds)
             for _, storageOrganelle in ipairs(self.microbe.storageOrganelles) do
                 self.stored = self.stored + storageOrganelle.stored
             end    
-    --  end
-         self.microbe.compoundCollectionTimer = self.microbe.compoundCollectionTimer - EXCESS_COMPOUND_COLLECTION_INTERVAL
+        end
+        self.microbe.compoundCollectionTimer = self.microbe.compoundCollectionTimer - EXCESS_COMPOUND_COLLECTION_INTERVAL
     end
     -- Other organelles
     for _, organelle in pairs(self.microbe.organelles) do

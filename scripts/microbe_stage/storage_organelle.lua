@@ -112,8 +112,9 @@ end
 function StorageOrganelle:gatherExcessCompounds(compoundPriorityTable, gatherLimit)
     local excessCompounds = {}
     local remainingGatherLimit = gatherLimit
-  
+
     while self.stored/self.capacity > STORAGE_EJECTION_THRESHHOLD do
+        
         -- Find lowest priority compound type and eject that
         local lowestPriorityId = nil
         local lowestPriority = math.huge
@@ -124,26 +125,23 @@ function StorageOrganelle:gatherExcessCompounds(compoundPriorityTable, gatherLim
                 lowestPriorityId = compoundId
             end
         end
-        if lowestPriorityId ~= nil then -- If there actually was a valid compound type to be found
-            -- Return an amount that either is how much the organelle contains of the compound or until it goes to the threshhold
-            local amountInExcess
-            assert(self.compounds[lowestPriorityId] ~= nil, "Organelle was over threshold but didn't have any valid compounds to expell")
-            if gatherLimit ~= nil then
-                amountInExcess = math.min(self.compounds[lowestPriorityId],self.stored - self.capacity * STORAGE_EJECTION_THRESHHOLD, remainingGatherLimit)
-                remainingGatherLimit = remainingGatherLimit - amountInExcess
-                if remainingGatherLimit == 0 then
-                    break -- We are not allowed to eject any more compounds for now, have to wait
-                end
-            else
-                amountInExcess = math.min(self.compounds[lowestPriorityId],self.stored - self.capacity * STORAGE_EJECTION_THRESHHOLD)
+        assert(lowestPriorityId ~= nil, "The microbe didn't seem to contain any compounds but was over the threshold")
+        assert(self.compounds[lowestPriorityId] ~= nil, "Organelle was over threshold but didn't have any valid compounds to expell")
+        -- Return an amount that either is how much the organelle contains of the compound or until it goes to the threshhold
+        local amountInExcess
+        
+        if gatherLimit ~= nil then
+            if remainingGatherLimit == 0 then
+                break -- We are not allowed to eject any more compounds for now, have to wait
             end
-            excessCompounds[lowestPriorityId] = amountInExcess
-            self.stored = self.stored - amountInExcess*CompoundRegistry.getCompoundUnitVolume(lowestPriorityId)
-            self.compounds[lowestPriorityId] = self.compounds[lowestPriorityId] - amountInExcess
-            
+            amountInExcess = math.min(self.compounds[lowestPriorityId],self.stored - self.capacity * STORAGE_EJECTION_THRESHHOLD, remainingGatherLimit)
+            remainingGatherLimit = remainingGatherLimit - amountInExcess
         else
-            break
+            amountInExcess = math.min(self.compounds[lowestPriorityId],self.stored - self.capacity * STORAGE_EJECTION_THRESHHOLD)
         end
+        excessCompounds[lowestPriorityId] = amountInExcess
+        self.stored = self.stored - amountInExcess*CompoundRegistry.getCompoundUnitVolume(lowestPriorityId)
+        self.compounds[lowestPriorityId] = self.compounds[lowestPriorityId] - amountInExcess
     end
     -- Expell compounds of priority 0 periodically
     -- for compoundId,_ in ipairs(self.compounds) do -- Should work but doesnt
@@ -158,6 +156,9 @@ function StorageOrganelle:gatherExcessCompounds(compoundPriorityTable, gatherLim
             end
             self.stored = self.stored - uselessCompoundAmount
             self.compounds[compoundId] = self.compounds[compoundId] - uselessCompoundAmount
+            if self.compounds[compoundId] == 0 then
+                self.compounds[compoundId] = nil
+            end
             if excessCompounds[compoundId] ~= nil then
                 excessCompounds[compoundId] = excessCompounds[compoundId] + uselessCompoundAmount
             else

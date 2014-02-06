@@ -188,7 +188,7 @@ local function createSpawnSystem()
     -- (square dekaunit?)
     spawnSystem:addSpawnType(testFunction, 1/20^2, 30)
     spawnSystem:addSpawnType(testFunction2, 1/20^2, 30)
-    --spawnSystem:addSpawnType(microbeSpawnFunction, 1/100^2, 40)
+    spawnSystem:addSpawnType(microbeSpawnFunction, 1/66^2, 40)
     return spawnSystem
 end
 
