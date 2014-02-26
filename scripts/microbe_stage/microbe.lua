@@ -8,8 +8,12 @@ class 'MicrobeComponent' (Component)
 
 COMPOUND_DISTRIBUTION_INTERVAL = 100 -- quantity of physics time between each loop distributing agents to organelles. TODO: Modify to reflect microbe size.
 
+MICROBE_HITPOINTS_PER_ORGANELLE = 10
+
 function MicrobeComponent:__init()
     Component.__init(self)
+    self.hitpoints = 10
+    self.maxHitpoints = 10
     self.organelles = {}
     self.vacuoles = {}
     self.processOrganelles = {}
@@ -30,6 +34,7 @@ function MicrobeComponent:load(storage)
         local s = encodeAxial(q, r)
         self.organelles[s] = organelle
     end
+    self.hitpoints = storage:get("hitpoints", 0)
 end
 
 
@@ -42,6 +47,7 @@ function MicrobeComponent:storage()
         organelles:append(organelleStorage)
     end
     storage:set("organelles", organelles)
+    storage:set("hitpoints", self.hitpoints)
     return storage
 end
 
@@ -167,6 +173,8 @@ function Microbe:addOrganelle(q, r, organelle)
     organelle.sceneNode.transform:touch()
     organelle:onAddedToMicrobe(self, q, r)
     self:_updateAllHexColours()
+    self.microbe.hitpoints = (self.microbe.hitpoints/self.microbe.maxHitpoints) * (self.microbe.maxHitpoints + MICROBE_HITPOINTS_PER_ORGANELLE)
+    self.microbe.maxHitpoints = self.microbe.maxHitpoints + MICROBE_HITPOINTS_PER_ORGANELLE
     return true
 end
 
@@ -255,6 +263,8 @@ function Microbe:removeOrganelle(q, r)
     organelle.position.r = 0
     organelle:onRemovedFromMicrobe(self)
     self:_updateAllHexColours()
+    self.microbe.hitpoints = (self.microbe.hitpoints/self.microbe.maxHitpoints) * (self.microbe.maxHitpoints - MICROBE_HITPOINTS_PER_ORGANELLE)
+    self.microbe.maxHitpoints = self.microbe.maxHitpoints - MICROBE_HITPOINTS_PER_ORGANELLE
     return true
 end
 
@@ -277,6 +287,48 @@ function Microbe:removeVacuole(vacuole)
     self:_updateAgentAbsorber(vacuole.agentId)
 end
 
+
+-- Damages the microbe, killing it if its hitpoints drop low enough
+--
+-- @param amount
+--  amount of hitpoints to substract
+function Microbe:damage(amount)
+    assert(amount >= 0, "Can't deal negative damage. Use Microbe:heal instead")
+    self.microbe.hitpoints = self.microbe.hitpoints - amount
+    if self.microbe.hitpoints <= 0 then
+        self.microbe.hitpoints = 0
+        self:kill()
+    end
+end
+
+-- Heals the microbe, restoring hitpoints, cannot exceede the microbes max hitpoints
+--
+-- @param amount
+--  amount of hitpoints heal
+function Microbe:heal(amount)
+    assert(amount >= 0, "Can't heal for negative amount of hitpoints. Use Microbe:damage instead")
+    self.microbe.hitpoints = (self.microbe.hitpoints + amount) % self.microbe.maxHitpoints
+end
+
+-- Kills the microbe, releasing stored compounds into the enviroment
+function Microbe:kill()
+    
+    self.compoundEmitter.minEmissionAngle = Degree(0)
+    self.compoundEmitter.maxEmissionAngle = Degree(359)
+    
+    if vacuoleList then
+        for _, vacuole in ipairs(vacuoleList) do
+            while vacuole.amount > 0 do
+                local emitted = math.min(vacuole.amount, 5)
+                vacuole.amount = vacuole.amount - emitted
+                self.compoundEmitter:emitAgent(agentId, emitted)
+            end
+        end
+    end    
+    local sceneNode = self.entity:getComponent(OgreSceneNodeComponent.TYPE_ID)
+    self.microbe.dead = true
+    sceneNode.visible = false
+end
 
 -- Stores an agent in the microbe's vacuoles
 -- 
@@ -446,6 +498,13 @@ function Microbe:getComponent(typeid)
     return self.entity:getComponent(typeid)
 end
 
+
+-- Must exists for current spawningSystem to function
+function Microbe:exists()
+    return self.entity:exists()
+end
+
+-- Must exists for current spawningSystem to function, also used by microbe:kill
 function Microbe:destroy()
     self.entity:destroy()
 end

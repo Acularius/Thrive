@@ -130,6 +130,7 @@ function ProcessOrganelle:update(microbe, milliseconds)
         end
         self._needsColourUpdate = true  -- Update colours for displaying completeness of organelle production
         self:updateColourDynamic()
+        microbe:damage(100)
         for agentId,amount in pairs(self.outputAgents) do 
             microbe:storeAgent(agentId, amount)
         end

@@ -68,9 +68,10 @@ public:
     *   - Transform::orientation
     *   - Transform::position
     *   - Transform::scale
-    * - OgreSceneNodeComponent::attachObject
-    * - OgreSceneNodeComponent::detachObject
-    * - OgreSceneNodeComponent::m_parentId (as "parent")
+    * - OgreSceneNodeComponent::entity
+    * - OgreSceneNodeComponent::parent
+    * - OgreSceneNodeComponent::meshName
+    * - OgreSceneNodeComponent::visible
     *
     * @return
     */
@@ -112,6 +113,10 @@ public:
     */
     Ogre::Entity* m_entity = nullptr;
 
+    /**
+    * @brief Whether the scenenode is visible
+    */
+    TouchableValue<bool> m_visible = true;
 };
 
 
@@ -119,7 +124,7 @@ public:
 * @brief Creates scene nodes for new OgreSceneNodeComponents
 */
 class OgreAddSceneNodeSystem : public System {
-    
+
 public:
 
     /**
@@ -128,7 +133,7 @@ public:
     * Exposes:
     * - OgreAddSceneNodeSystem()
     *
-    * @return 
+    * @return
     */
     static luabind::scope
     luaBindings();
@@ -170,7 +175,7 @@ private:
 * @brief Removes scene nodes for removed OgreSceneNodeComponents
 */
 class OgreRemoveSceneNodeSystem : public System {
-    
+
 public:
 
     /**
@@ -179,7 +184,7 @@ public:
     * Exposes:
     * - OgreRemoveSceneNodeSystem()
     *
-    * @return 
+    * @return
     */
     static luabind::scope
     luaBindings();
@@ -220,7 +225,7 @@ private:
 * @brief Updates scene node transformations
 */
 class OgreUpdateSceneNodeSystem : public System {
-    
+
 public:
 
     /**
@@ -229,7 +234,7 @@ public:
     * Exposes:
     * - OgreUpdateSceneNodeSystem()
     *
-    * @return 
+    * @return
     */
     static luabind::scope
     luaBindings();

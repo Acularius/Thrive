@@ -251,6 +251,19 @@ local function setupHud()
     energyText.properties.left = -ENERGY_WIDTH / 2
     energyText.properties.top = - ENERGY_HEIGHT
     energyText.properties:touch()
+    local HP_WIDTH = -100
+    local HP_HEIGHT = 32
+    local hpCount = Entity("hud.hpCount")
+    local hpText = TextOverlayComponent("hud.hpCount")
+    hpCount:addComponent(hpText)
+    hpText.properties.horizontalAlignment = TextOverlayComponent.Center
+    hpText.properties.verticalAlignment = TextOverlayComponent.Bottom
+    hpText.properties.width = HP_WIDTH
+    hpText.properties.height = HP_HEIGHT
+    hpText.properties.left = -HP_WIDTH / 2
+    hpText.properties.top = - HP_HEIGHT
+    hpText.properties:touch()
+    
     -- Setting up hud element for displaying all agents
     local AGENTS_WIDTH = 200
     local AGENTS_HEIGHT = 32    

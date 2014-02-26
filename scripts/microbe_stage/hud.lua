@@ -14,7 +14,10 @@ function HudSystem:update(milliseconds)
     local energyTextOverlay = Entity("hud.energyCount"):getComponent(TextOverlayComponent.TYPE_ID)
     energyTextOverlay.properties.text = string.format("Energy: %d", energy)
     energyTextOverlay.properties:touch()
-
+    local hp = playerMicrobe.microbe.hitpoints
+    local hpTextOverlay = Entity("hud.hpCount"):getComponent(TextOverlayComponent.TYPE_ID)
+    hpTextOverlay.properties.text = string.format("HP: %d", hp)
+    hpTextOverlay.properties:touch()
     local FONT_HEIGHT = 18 -- Not sure how to determine this correctly
     local agentsString =  "Agents: "
     local agentCountsString =  ""
