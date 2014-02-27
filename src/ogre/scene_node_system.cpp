@@ -44,8 +44,7 @@ OgreSceneNodeComponent_setVisible(
     OgreSceneNodeComponent* self,
     bool visible
 ) {
-
-    self->m_visible = visible; // This should automatically call touch().
+    self->m_visible = visible; // This should automatically call touch().w
 }
 
 
@@ -388,10 +387,10 @@ OgreUpdateSceneNodeSystem::update(int) {
             component->m_meshName.untouch();
         }
         if (component->m_visible.hasChanges()) {
-            if (component->m_entity) {
-                component->m_sceneNode->setVisible(component->m_visible);
-            }
+            component->m_sceneNode->setVisible(component->m_visible.get());
             component->m_visible.untouch();
+
+
         }
     }
 }

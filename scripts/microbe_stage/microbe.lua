@@ -10,16 +10,19 @@ COMPOUND_DISTRIBUTION_INTERVAL = 100 -- quantity of physics time between each lo
 
 MICROBE_HITPOINTS_PER_ORGANELLE = 10
 
-function MicrobeComponent:__init()
+function MicrobeComponent:__init(isPlayerMicrobe)
     Component.__init(self)
     self.hitpoints = 10
     self.maxHitpoints = 10
+    self.dead = false
+    self.deathTimer = 0
     self.organelles = {}
     self.vacuoles = {}
     self.processOrganelles = {}
     self.movementDirection = Vector3(0, 0, 0)
     self.facingTargetPoint = Vector3(0, 0, 0)
     self.initialized = false
+    self.isPlayerMicrobe = isPlayerMicrobe
 end
 
 
@@ -93,7 +96,7 @@ function Microbe.createMicrobeEntity(name, aiControlled)
     local components = {
         AgentAbsorberComponent(),
         OgreSceneNodeComponent(),
-        MicrobeComponent(),
+        MicrobeComponent(not aiControlled),
         reactionHandler,
         rigidBody,
         compoundEmitter
@@ -325,9 +328,14 @@ function Microbe:kill()
             end
         end
     end    
-    local sceneNode = self.entity:getComponent(OgreSceneNodeComponent.TYPE_ID)
-    self.microbe.dead = true
-    sceneNode.visible = false
+    if self.microbe.isPlayerMicrobe then
+        local sceneNode = self.entity:getComponent(OgreSceneNodeComponent.TYPE_ID)
+        self.microbe.dead = true
+        self.microbe.deathTimer = 5000
+        sceneNode.visible = false
+    else
+        self:destroy()
+    end
 end
 
 -- Stores an agent in the microbe's vacuoles
@@ -408,36 +416,56 @@ end
 
 -- Updates the microbe's state
 function Microbe:update(milliseconds)
-    -- Vacuoles
-    for agentId, vacuoleList in pairs(self.microbe.vacuoles) do
-        -- Check for agents to store
-        local amount = self.agentAbsorber:absorbedAgentAmount(agentId)
-        if amount > 0.0 then
-            self:storeAgent(agentId, amount)
-        end
-    end
-    -- Distribute agents to StorageOrganelles
-    self.residuePhysicsTime = self.residuePhysicsTime + milliseconds
-    while self.residuePhysicsTime > COMPOUND_DISTRIBUTION_INTERVAL do -- For every COMPOUND_DISTRIBUTION_INTERVAL passed
-        for agentId, vacuoleList in pairs(self.microbe.vacuoles) do -- Foreach agent type.
-            if self:getAgentAmount(agentId) > 0 then -- If microbe contains the compound
-                local candidateIndices = {} -- Indices of organelles that want the agent
-                for i, processOrg in ipairs(self.microbe.processOrganelles) do  
-                    if processOrg:wantsInputAgent(agentId) then   
-                        table.insert(candidateIndices, i) -- Organelle has determined that it is interrested in obtaining the agnet
-                    end
-                end
-                if #candidateIndices > 0 then -- If there were any candidates, pick a random winner.
-                    local chosenProcessOrg = self.microbe.processOrganelles[candidateIndices[rng:getInt(1,#candidateIndices)]]
-                    chosenProcessOrg:storeAgent(agentId, self:takeAgent(agentId, 1))
-                end
+    if not self.microbe.dead then
+        -- Vacuoles
+        for agentId, vacuoleList in pairs(self.microbe.vacuoles) do
+            -- Check for agents to store
+            local amount = self.agentAbsorber:absorbedAgentAmount(agentId)
+            if amount > 0.0 then
+                self:storeAgent(agentId, amount)
             end
         end
-        self.residuePhysicsTime = self.residuePhysicsTime - COMPOUND_DISTRIBUTION_INTERVAL
-    end
-    -- Other organelles
-    for _, organelle in pairs(self.microbe.organelles) do
-        organelle:update(self, milliseconds)
+        -- Distribute agents to StorageOrganelles
+        self.residuePhysicsTime = self.residuePhysicsTime + milliseconds
+        while self.residuePhysicsTime > COMPOUND_DISTRIBUTION_INTERVAL do -- For every COMPOUND_DISTRIBUTION_INTERVAL passed
+            for agentId, vacuoleList in pairs(self.microbe.vacuoles) do -- Foreach agent type.
+                if self:getAgentAmount(agentId) > 0 then -- If microbe contains the compound
+                    local candidateIndices = {} -- Indices of organelles that want the agent
+                    for i, processOrg in ipairs(self.microbe.processOrganelles) do  
+                        if processOrg:wantsInputAgent(agentId) then   
+                            table.insert(candidateIndices, i) -- Organelle has determined that it is interrested in obtaining the agnet
+                        end
+                    end
+                    if #candidateIndices > 0 then -- If there were any candidates, pick a random winner.
+                        local chosenProcessOrg = self.microbe.processOrganelles[candidateIndices[rng:getInt(1,#candidateIndices)]]
+                        chosenProcessOrg:storeAgent(agentId, self:takeAgent(agentId, 1))
+                    end
+                end
+            end
+            self.residuePhysicsTime = self.residuePhysicsTime - COMPOUND_DISTRIBUTION_INTERVAL
+        end
+        -- Other organelles
+        for _, organelle in pairs(self.microbe.organelles) do
+            organelle:update(self, milliseconds)
+        end
+    else
+        self.microbe.deathTimer = self.microbe.deathTimer - milliseconds
+        if self.microbe.deathTimer <= 0 then
+            self.microbe.dead = false
+            self.microbe.deathTimer = 0
+            self.residuePhysicsTime = 0
+            self.microbe.hitpoints = self.microbe.maxHitpoints
+            
+            self.rigidBody:setDynamicProperties(
+                Vector3(0,0,0), -- Position
+                Quaternion(Radian(Degree(0)), Vector3(1, 0, 0)), -- Orientation
+                Vector3(0, 0, 0), -- Linear velocity
+                Vector3(0, 0, 0)  -- Angular velocity
+            )
+            local sceneNode = self.entity:getComponent(OgreSceneNodeComponent.TYPE_ID)
+            sceneNode.visible = true
+        end
+    
     end
 end
 
