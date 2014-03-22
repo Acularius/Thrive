@@ -228,6 +228,7 @@ target_link_libraries(ThriveLib
     ${BULLET_MATH_LIBRARY}
     ${BULLET_SOFTBODY_LIBRARY}
     ${IRRKLANG_LIBRARIES}
+    ${CEGUI_LIBRARY}
     luabind
 )
 
@@ -341,12 +342,59 @@ install(DIRECTORY
     FILES_MATCHING
         PATTERN "*.ttf"
         PATTERN "*.fontdef"
+        PATTERN "*.font"
 )
 
 install(DIRECTORY
     ${CMAKE_SOURCE_DIR}/scripts
     DESTINATION ./
     CONFIGURATIONS Release  Debug
+)
+install(DIRECTORY
+    ${ASSET_DIRECTORY}/animations
+    DESTINATION ./
+    CONFIGURATIONS Release  Debug
+    FILES_MATCHING
+        PATTERN "*.anims"
+)
+install(DIRECTORY
+    ${ASSET_DIRECTORY}/imagesets
+    DESTINATION ./
+    CONFIGURATIONS Release  Debug
+    FILES_MATCHING
+        PATTERN "*.imageset"
+        PATTERN "*.jpg"
+        PATTERN "*.png"
+)
+install(DIRECTORY
+    ${ASSET_DIRECTORY}/layouts
+    DESTINATION ./
+    CONFIGURATIONS Release  Debug
+    FILES_MATCHING
+        PATTERN "*.layout"
+        PATTERN "*.wnd"
+)
+install(DIRECTORY
+    ${ASSET_DIRECTORY}/looknfeel
+    DESTINATION ./
+    CONFIGURATIONS Release  Debug
+    FILES_MATCHING
+        PATTERN "*.looknfeel"
+)
+install(DIRECTORY
+    ${ASSET_DIRECTORY}/schemes
+    DESTINATION ./
+    CONFIGURATIONS Release  Debug
+    FILES_MATCHING
+        PATTERN "*.scheme"
+)
+#are the schemas necessary?
+install(DIRECTORY
+    ${ASSET_DIRECTORY}/xml_schemas
+    DESTINATION ./
+    CONFIGURATIONS Release  Debug
+    FILES_MATCHING
+        PATTERN "*.xsd"
 )
 
 # Install Runtime Libraries
@@ -401,6 +449,30 @@ if(WIN32)
 		DESTINATION bin
 		CONFIGURATIONS Debug
 	)
+    
+    install(FILES
+        ${MINGW_ENV}/install/bin/libCEGUIBase-0.dll
+        ${MINGW_ENV}/install/bin/libCEGUIOgreRenderer-0.dll
+        ${MINGW_ENV}/install/bin/Release/libfreetype.dll
+        ${MINGW_ENV}/install/bin/Release/libjpeg.dll
+        ${MINGW_ENV}/install/bin/Release/liblibpng.dll
+        ${MINGW_ENV}/install/bin/Release/libSILLY.dll
+        ${MINGW_ENV}/install/bin/Release/libzlib.dll
+        DESTINATION bin
+		CONFIGURATIONS Release
+    )
+    
+    install(FILES
+        ${MINGW_ENV}/install/bin/libCEGUIBase-0_d.dll
+        ${MINGW_ENV}/install/bin/libCEGUIOgreRenderer-0_d.dll
+        ${MINGW_ENV}/install/bin/Debug/libfreetype_d.dll
+        ${MINGW_ENV}/install/bin/Debug/libjpeg_d.dll
+        ${MINGW_ENV}/install/bin/Debug/liblibpng_d.dll
+        ${MINGW_ENV}/install/bin/Debug/libSILLY_d.dll
+        ${MINGW_ENV}/install/bin/Debug/libzlib_d.dll
+        DESTINATION bin
+		CONFIGURATIONS debug
+    )
 
 elseif(UNIX)
 
