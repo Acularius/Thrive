@@ -8,6 +8,7 @@
 #include "engine/system.h"
 #include "engine/rng.h"
 #include "game.h"
+#include "gui/gui.h"
 
 // Bullet
 #include "bullet/bullet_to_ogre_system.h"
@@ -288,12 +289,12 @@ struct Engine::Implementation : public Ogre::WindowEventListener {
         ));
 #if defined OIS_WIN32_PLATFORM
         parameters.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_FOREGROUND" )));
-        parameters.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_NONEXCLUSIVE")));
+        parameters.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_EXCLUSIVE")));
         parameters.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_FOREGROUND")));
         parameters.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_NONEXCLUSIVE")));
 #elif defined OIS_LINUX_PLATFORM
         parameters.insert(std::make_pair(std::string("x11_mouse_grab"), std::string("false")));
-        parameters.insert(std::make_pair(std::string("x11_mouse_hide"), std::string("false")));
+        parameters.insert(std::make_pair(std::string("x11_mouse_hide"), std::string("true")));
         parameters.insert(std::make_pair(std::string("x11_keyboard_grab"), std::string("false")));
         parameters.insert(std::make_pair(std::string("XAutoRepeatOn"), std::string("true")));
 #endif
@@ -519,7 +520,9 @@ Engine::init() {
         gameState->init();
     }
     m_impl->m_currentGameState = previousGameState;
+    testgui();
 }
+
 
 
 OIS::InputManager*
