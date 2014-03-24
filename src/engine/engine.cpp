@@ -8,7 +8,6 @@
 #include "engine/system.h"
 #include "engine/rng.h"
 #include "game.h"
-#include "gui/gui.h"
 
 // Bullet
 #include "bullet/bullet_to_ogre_system.h"
@@ -310,6 +309,21 @@ struct Engine::Implementation : public Ogre::WindowEventListener {
     void
     setupGUI(){
         CEGUI::OgreRenderer::bootstrapSystem();
+        CEGUI::WindowManager& wmgr = CEGUI::WindowManager::getSingleton();
+        CEGUI::Window* myRoot = wmgr.createWindow( "DefaultWindow", "root" );
+        CEGUI::System::getSingleton().getDefaultGUIContext().setRootWindow( myRoot );
+        // The following is all loaded statically which could be moved to gamestate::activate
+        // if memory/startup time becomes a problem
+        CEGUI::FontManager::getSingleton().createFromFile("Jura-13.font");
+        CEGUI::SchemeManager::getSingleton().createFromFile("TaharezLook.scheme");
+        CEGUI::SchemeManager::getSingleton().createFromFile("VanillaSkin.scheme");
+        CEGUI::SchemeManager::getSingleton().createFromFile("WindowsLook.scheme");
+        CEGUI::SchemeManager::getSingleton().createFromFile("Generic.scheme");
+        CEGUI::SchemeManager::getSingleton().createFromFile("HUDDemo.scheme");
+        CEGUI::ImageManager::getSingleton().loadImageset("DriveIcons.imageset");
+        CEGUI::ImageManager::getSingleton().loadImageset("GameMenu.imageset");
+        CEGUI::System::getSingleton().getDefaultGUIContext().getMouseCursor().setDefaultImage("WindowsLook/MouseArrow");
+
     }
 
     void
@@ -526,7 +540,6 @@ Engine::init() {
     m_impl->setupGraphics();
     m_impl->setupInputManager();
     m_impl->setupGUI();
-    testgui();
     m_impl->loadScripts("../scripts");
     GameState* previousGameState = m_impl->m_currentGameState;
     for (const auto& pair : m_impl->m_gameStates) {

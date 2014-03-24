@@ -115,11 +115,9 @@ GameState::~GameState() {}
 
 void
 GameState::activate() {
-    std::cout << "acti" << std::endl;
     m_impl->m_guiWindow = CEGUIWindow::getRootWindow().createChildWindow(m_impl->m_guiLayoutName);
     for (const auto& system : m_impl->m_systems) {
         system->activate();
-
     }
 }
 
