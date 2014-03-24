@@ -512,6 +512,7 @@ Engine::init() {
     m_impl->setupScripts();
     m_impl->setupGraphics();
     m_impl->setupInputManager();
+    testgui();
     m_impl->loadScripts("../scripts");
     GameState* previousGameState = m_impl->m_currentGameState;
     for (const auto& pair : m_impl->m_gameStates) {
@@ -520,7 +521,7 @@ Engine::init() {
         gameState->init();
     }
     m_impl->m_currentGameState = previousGameState;
-    testgui();
+
 }
 
 

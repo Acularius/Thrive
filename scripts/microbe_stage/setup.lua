@@ -371,6 +371,11 @@ local function createMicrobeStage(name)
     )
 end
 
+local window1 = CEGUIWindow.getRootWindow()
+local w2 = window1:getChild("Root")
+local w3 = w2:getChild("MainWindow")
+print(w3:getText())
+
 GameState.MICROBE = createMicrobeStage("microbe")
 GameState.MICROBE_ALTERNATE = createMicrobeStage("microbe_alternate")
 
