@@ -5,6 +5,8 @@
 #include "engine/serialization.h"
 #include "engine/system.h"
 
+#include "gui/CEGUIWindow.h"
+
 #include <btBulletDynamicsCommon.h>
 #include <OgreRoot.h>
 
@@ -16,11 +18,14 @@ struct GameState::Implementation {
         Engine& engine,
         std::string name,
         std::vector<std::unique_ptr<System>> systems,
-        Initializer initializer
+        Initializer initializer,
+        std::string guiLayoutName
     ) : m_engine(engine),
         m_initializer(initializer),
         m_name(name),
-        m_systems(std::move(systems))
+        m_systems(std::move(systems)),
+        m_guiLayoutName(guiLayoutName),
+        m_guiWindow(nullptr)
     {
     }
 
@@ -78,6 +83,10 @@ struct GameState::Implementation {
 
     std::vector<std::unique_ptr<System>> m_systems;
 
+    std::string m_guiLayoutName;
+
+    CEGUIWindow m_guiWindow;
+
 };
 
 
@@ -94,8 +103,9 @@ GameState::GameState(
     Engine& engine,
     std::string name,
     std::vector<std::unique_ptr<System>> systems,
-    Initializer initializer
-) : m_impl(new Implementation(engine, name, std::move(systems), initializer))
+    Initializer initializer,
+    std::string guiLayoutName
+) : m_impl(new Implementation(engine, name, std::move(systems), initializer, guiLayoutName))
 {
 }
 
@@ -105,8 +115,11 @@ GameState::~GameState() {}
 
 void
 GameState::activate() {
+    std::cout << "acti" << std::endl;
+    m_impl->m_guiWindow = CEGUIWindow::getRootWindow().createChildWindow(m_impl->m_guiLayoutName);
     for (const auto& system : m_impl->m_systems) {
         system->activate();
+
     }
 }
 
@@ -116,6 +129,7 @@ GameState::deactivate() {
     for (const auto& system : m_impl->m_systems) {
         system->deactivate();
     }
+    m_impl->m_guiWindow.destroy();
 }
 
 

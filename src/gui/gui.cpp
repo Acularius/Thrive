@@ -16,7 +16,7 @@ void testgui(){
 
 
 //
-    CEGUI::OgreRenderer* renderer = &CEGUI::OgreRenderer::bootstrapSystem();
+
 
   // CEGUI::Imageset::setDefaultResourceGroup("Imagesets");
    /* CEGUI::Font::setDefaultResourceGroup("Fonts");
@@ -35,14 +35,13 @@ void testgui(){
 
     CEGUI::ImageManager::getSingleton().loadImageset("DriveIcons.imageset");
     CEGUI::ImageManager::getSingleton().loadImageset("GameMenu.imageset");
-    CEGUI::Window *newWindow = CEGUI::WindowManager::getSingleton().loadLayoutFromFile("DragDropDemo.layout");
+ //   CEGUI::Window *newWindow = CEGUI::WindowManager::getSingleton().loadLayoutFromFile("DragDropDemo.layout");
 
     // set up defaults
     CEGUI::System::getSingleton().getDefaultGUIContext().getMouseCursor().setDefaultImage("WindowsLook/MouseArrow");
     // load the drive icons imageset
 
 
-      std::cout << renderer << std::endl;
     CEGUI::WindowManager& wmgr = CEGUI::WindowManager::getSingleton();
     CEGUI::Window* myRoot = wmgr.createWindow( "DefaultWindow", "root" );
     CEGUI::System::getSingleton().getDefaultGUIContext().setRootWindow( myRoot );
@@ -50,7 +49,7 @@ void testgui(){
   //   CEGUI::FrameWindow* fWnd = static_cast<CEGUI::FrameWindow*>(
     //wmgr.createWindow( "TaharezLook/FrameWindow", "testWindow" ));
    // myRoot->addChild( fWnd );
-   myRoot->addChild(newWindow);
+  // myRoot->addChild(newWindow);
   // auto func1 = [](const CEGUI::EventArgs&) -> int { std::cout << "YAAAAY" << std::endl; return 5; };
 
    // thrive::CEGUIWindow yomama = thrive::CEGUIWindow::getRootWindow();

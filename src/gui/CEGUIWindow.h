@@ -1,21 +1,9 @@
 #pragma once
 
 #include <CEGUI/CEGUI.h>
+#include <luabind/object.hpp>
 #include <OgreVector2.h>
 
-#include <luabind/object.hpp>
-
-/*
-
-// We can't just capture the luaInitializer in the lambda here, because
-    // luabind::object's call operator is not const
-    auto initializer = std::bind<void>(
-        [](luabind::object luaInitializer) {
-            luaInitializer();
-        },
-        luaInitializer
-    );
-*/
 
 namespace luabind {
 class scope;
@@ -40,20 +28,48 @@ public:
     * @brief Lua bindings
     *
     * Exposes:
-    * - OgreSceneNodeComponent()
-    * - @link m_transform transform @endlink
-    * - Transform
-    *   - Transform::orientation
-    *   - Transform::position
-    *   - Transform::scale
-    * - OgreSceneNodeComponent::attachObject
-    * - OgreSceneNodeComponent::detachObject
-    * - OgreSceneNodeComponent::m_parentId (as "parent")
+    * - CEGUIWindow::getRootWindow (static)
+    * - CEGUIWindow::getText
+    * - CEGUIWindow::setText
+    * - CEGUIWindow::appendText
+    * - CEGUIWindow::getParent
+    * - CEGUIWindow::getChild
+    * - CEGUIWindow::registerEventHandler
+    * - CEGUIWindow::enable
+    * - CEGUIWindow::disable
+    * - CEGUIWindow::setFocus
+    * - CEGUIWindow::show
+    * - CEGUIWindow::hide
+    * - CEGUIWindow::moveToFront
+    * - CEGUIWindow::moveToBack
+    * - CEGUIWindow::moveInFront
+    * - CEGUIWindow::moveBehind
+    * - CEGUIWindow::setPosition
     *
     * @return
     */
     static luabind::scope
     luaBindings();
+
+    /**
+    * @brief Creates a new windows and adds it to the underlying CEGUI window
+    *
+    * @param layoutName
+    *  The name of the layout to use (filename without fileending)
+    *
+    * @return
+    *  The newly created window
+    */
+    CEGUIWindow
+    createChildWindow(
+        std::string layoutName
+    );
+
+    /**
+    * @brief Destroys the underlying CEGUI Window
+    */
+    void
+    destroy() const;
 
     /**
     * @brief Get the underlying cegui windows text if it has any
@@ -212,6 +228,8 @@ public:
 
 
 private:
+
+    friend class GameState;
 
     //Private constructor
     CEGUIWindow(CEGUI::Window* window);

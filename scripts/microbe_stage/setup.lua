@@ -366,22 +366,18 @@ local function createMicrobeStage(name)
             setupCamera()
             setupEmitter()
             setupHud()
-            setupPlayer()
-        end
+            setupPlayer()        
+        end,
+        "DragDropDemo"
     )
 end
 
-function printer()
-    print("OH YAHH")
-end
-
-local window1 = CEGUIWindow.getRootWindow()
-local w2 = window1:getChild("Root")
-local w3 = w2:getChild("MainWindow")
-w3:registerEventHandler("CloseClicked", printer)
-print(w3:getText())
 
 GameState.MICROBE = createMicrobeStage("microbe")
 GameState.MICROBE_ALTERNATE = createMicrobeStage("microbe_alternate")
 
 Engine:setCurrentGameState(GameState.MICROBE)
+
+
+
+

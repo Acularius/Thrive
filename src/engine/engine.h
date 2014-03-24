@@ -84,7 +84,7 @@ public:
     /**
     * @brief Returns the internal component factory
     *
-    * @return 
+    * @return
     */
     ComponentFactory&
     componentFactory();
@@ -109,7 +109,8 @@ public:
     createGameState(
         std::string name,
         std::vector<std::unique_ptr<System>> systems,
-        GameState::Initializer initializer
+        GameState::Initializer initializer,
+        std::string guiLayoutName
     );
 
     /**
@@ -135,8 +136,8 @@ public:
     * @param name
     *   The game state's name
     *
-    * @return 
-    *   The game state with \a name or \c nullptr if no game state with 
+    * @return
+    *   The game state with \a name or \c nullptr if no game state with
     *   this name exists.
     */
     GameState*
@@ -213,7 +214,7 @@ public:
     *
     * The game state will be activated at the beginning of the next frame.
     *
-    * \a gameState must not be \c null. It's passed by pointer as a 
+    * \a gameState must not be \c null. It's passed by pointer as a
     * convenience for the Lua bindings (which can't handle references well).
     *
     * @param gameState

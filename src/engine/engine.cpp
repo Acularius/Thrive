@@ -16,6 +16,10 @@
 #include "bullet/update_physics_system.h"
 #include "bullet/collision_system.h"
 
+// CEGUI
+#include <CEGUI/CEGUI.h>
+#include "CEGUI/RendererModules/Ogre/Renderer.h"
+
 // Ogre
 #include "ogre/camera_system.h"
 #include "ogre/keyboard.h"
@@ -304,6 +308,11 @@ struct Engine::Implementation : public Ogre::WindowEventListener {
     }
 
     void
+    setupGUI(){
+        CEGUI::OgreRenderer::bootstrapSystem();
+    }
+
+    void
     setupLog() {
         static Ogre::LogManager logManager;
         logManager.createLog("default", true, false, false);
@@ -397,7 +406,8 @@ Engine_createGameState(
     Engine* self,
     std::string name,
     luabind::object luaSystems,
-    luabind::object luaInitializer
+    luabind::object luaInitializer,
+    std::string guiLayoutName
 ) {
     std::vector<std::unique_ptr<System>> systems;
     for (luabind::iterator iter(luaSystems), end; iter != end; ++iter) {
@@ -418,7 +428,8 @@ Engine_createGameState(
     return self->createGameState(
         name,
         std::move(systems),
-        initializer
+        initializer,
+        guiLayoutName
     );
 }
 
@@ -461,14 +472,16 @@ GameState*
 Engine::createGameState(
     std::string name,
     std::vector<std::unique_ptr<System>> systems,
-    GameState::Initializer initializer
+    GameState::Initializer initializer,
+    std::string guiLayoutName
 ) {
     assert(m_impl->m_gameStates.find(name) == m_impl->m_gameStates.end() && "Duplicate GameState name");
     std::unique_ptr<GameState> gameState(new GameState(
         *this,
         name,
         std::move(systems),
-        initializer
+        initializer,
+        guiLayoutName
     ));
     GameState* rawGameState = gameState.get();
     m_impl->m_gameStates.insert(std::make_pair(
@@ -512,6 +525,7 @@ Engine::init() {
     m_impl->setupScripts();
     m_impl->setupGraphics();
     m_impl->setupInputManager();
+    m_impl->setupGUI();
     testgui();
     m_impl->loadScripts("../scripts");
     GameState* previousGameState = m_impl->m_currentGameState;

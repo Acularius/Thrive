@@ -5,6 +5,16 @@ function HudSystem:__init()
     System.__init(self)
 end
 
+function printer()
+    print("OH YAHH")
+end
+
+function HudSystem:activate()
+    local window1 = CEGUIWindow.getRootWindow()
+    local w2 = window1:getChild("Root")
+    local w3 = w2:getChild("MainWindow")
+    w3:registerEventHandler("CloseClicked", printer)
+end
 
 function HudSystem:update(milliseconds)
     local player = Entity("player")

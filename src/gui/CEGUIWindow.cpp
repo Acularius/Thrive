@@ -2,7 +2,7 @@
 
 #include "scripting/luabind.h"
 #include <luabind/object.hpp>
-#include <luabind/function.hpp>
+
 using namespace thrive;
 
 
@@ -38,8 +38,6 @@ CEGUIWindow::luaBindings() {
         .def("appendText", &CEGUIWindow::appendText)
         .def("getParent", &CEGUIWindow::getParent)
         .def("getChild", &CEGUIWindow::getChild)
-     //   static_cast<void (AxisAlignedBox::*) (const Vector3&)>(&AxisAlignedBox::
-    //    .def("getMinimum", static_cast<const Vector3& (AxisAlignedBox::*) () const>(&AxisAlignedBox::getMinimum) )
         .def("registerEventHandler",
              static_cast<void (CEGUIWindow::*)(const std::string&, const luabind::object&) const>(&CEGUIWindow::RegisterEventHandler)
          )
@@ -56,6 +54,21 @@ CEGUIWindow::luaBindings() {
     ;
 }
 
+
+CEGUIWindow
+CEGUIWindow::createChildWindow(
+    std::string layoutName
+){
+    CEGUI::Window* newWindow = CEGUI::WindowManager::getSingleton().loadLayoutFromFile(layoutName + ".layout");
+    m_window->addChild(newWindow);
+    return CEGUIWindow(newWindow);
+}
+
+
+void
+CEGUIWindow::destroy() const {
+    m_window->destroy();
+}
 
 std::string
 CEGUIWindow::getText() const {
@@ -107,7 +120,7 @@ CEGUIWindow::RegisterEventHandler(
     const std::string& eventName,
     const luabind::object& callback
 ) const {
-    // Must return something to avoid an template error.
+    // Lambda must return something to avoid an template error.
     auto callbackLambda = [callback](const CEGUI::EventArgs&) -> int
         {
             luabind::call_function<void>(callback);

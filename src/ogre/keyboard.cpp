@@ -30,9 +30,6 @@ struct Keyboard::Implementation : public OIS::KeyListener{
         this->queueEvent(event, true);
         CEGUI::System::getSingleton().getDefaultGUIContext().injectKeyDown(static_cast<CEGUI::Key::Scan>(static_cast<int>(event.key)));
         CEGUI::System::getSingleton().getDefaultGUIContext().injectChar(event.text);
-        //CEGUI::InjectedInputReceiver::injectKeyDown(event.KeyEvent);//System::getSingleton()..injectKeyDown(event.key);
-	//	CEGUI::InjectedInputReceiver::injectChar(event.text);
-		//CEGUI::System::getSingleton().injectChar(event.text);
         return true;
     }
 
