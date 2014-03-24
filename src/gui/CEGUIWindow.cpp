@@ -1,11 +1,12 @@
 #include "gui/CEGUIWindow.h"
 
 #include "scripting/luabind.h"
-
+#include <luabind/object.hpp>
+#include <luabind/function.hpp>
 using namespace thrive;
 
 
-// Static member
+//Static
 CEGUIWindow
 CEGUIWindow::getRootWindow()
 {
@@ -37,7 +38,11 @@ CEGUIWindow::luaBindings() {
         .def("appendText", &CEGUIWindow::appendText)
         .def("getParent", &CEGUIWindow::getParent)
         .def("getChild", &CEGUIWindow::getChild)
-        .def("RegisterEventHandler", &CEGUIWindow::RegisterEventHandler)
+     //   static_cast<void (AxisAlignedBox::*) (const Vector3&)>(&AxisAlignedBox::
+    //    .def("getMinimum", static_cast<const Vector3& (AxisAlignedBox::*) () const>(&AxisAlignedBox::getMinimum) )
+        .def("registerEventHandler",
+             static_cast<void (CEGUIWindow::*)(const std::string&, const luabind::object&) const>(&CEGUIWindow::RegisterEventHandler)
+         )
         .def("enable", &CEGUIWindow::enable)
         .def("disable", &CEGUIWindow::disable)
         .def("setFocus", &CEGUIWindow::setFocus)
@@ -92,8 +97,23 @@ void
 CEGUIWindow::RegisterEventHandler(
     const std::string& eventName,
     CEGUI::Event::Subscriber callback
-) {
+) const {
     m_window->subscribeEvent(eventName, callback);
+}
+
+
+void
+CEGUIWindow::RegisterEventHandler(
+    const std::string& eventName,
+    const luabind::object& callback
+) const {
+    // Must return something to avoid an template error.
+    auto callbackLambda = [callback](const CEGUI::EventArgs&) -> int
+        {
+            luabind::call_function<void>(callback);
+            return 0;
+        };
+    m_window->subscribeEvent(eventName, callbackLambda);
 }
 
 

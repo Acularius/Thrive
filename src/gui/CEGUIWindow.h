@@ -2,6 +2,9 @@
 
 #include <CEGUI/CEGUI.h>
 #include <OgreVector2.h>
+
+#include <luabind/object.hpp>
+
 /*
 
 // We can't just capture the luaInitializer in the lambda here, because
@@ -117,7 +120,16 @@ public:
     RegisterEventHandler(
         const std::string& eventName,
         CEGUI::Event::Subscriber callback
-    );
+    ) const;
+
+    // Same as above but for lua callbacks
+    void
+    RegisterEventHandler(
+        const std::string& eventName,
+        const luabind::object& callback
+    ) const ;
+
+
 
     /**
     * @brief Enables the window, allowing interaction
